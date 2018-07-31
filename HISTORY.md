@@ -2,6 +2,7 @@
 ## v0.1.0 - Jul/2018
 
 - make printing to console optional
+- add django unit-tests
 
 ## v0.0.1 - Jul/2018
 
