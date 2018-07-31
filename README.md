@@ -56,8 +56,7 @@ def cronjob_open_task_worker():
         with JobLogger("work-open-tasks") as log:
             work_open_tasks(log)
             
-# to avoid the error message:
-
+# to avoid the error message on multiple invocation:
 def cronjob_open_task_worker():
     if open_tasks():
         try:
@@ -130,7 +129,7 @@ def debug_invokation():
 def buy_eggs(log=None):
     log = log or DummyJobLogger()
     
-    log("Gonna buy some eggs!")
+    log.log("Gonna buy some eggs!")
     ...
 ```
 
