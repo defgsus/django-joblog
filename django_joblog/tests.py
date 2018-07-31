@@ -57,20 +57,20 @@ class JobLogTestCase(TestCase):
     def test_context(self):
         with JobLogger("test-context") as log:
             log.log("outside")
-            log.error("outside")
+            log.error("eoutside")
             with JobLoggerContext(log, "context1"):
                 log.log("inside")
-                log.error("inside")
+                log.error("einside")
                 with JobLoggerContext(log, "context2"):
                     log.log("nested")
-                    log.error("nested")
+                    log.error("enested")
             log.log("outside")
-            log.error("outside")
+            log.error("eoutside")
 
         model = JobLogModel.objects.get(name="test-context")
 
         self.assertEqual("outside\ncontext1: inside\ncontext1:context2: nested\noutside", model.log_text)
-        self.assertEqual("outside\ncontext1: inside\ncontext1:context2: nested\noutside", model.error_text)
+        self.assertEqual("eoutside\ncontext1: einside\ncontext1:context2: enested\neoutside", model.error_text)
 
     def test_exception(self):
         with JobLogger("test-exception"):
@@ -92,7 +92,7 @@ class JobLogTestCase(TestCase):
 
     def test_is_running(self):
         def _task():
-            with JobLogger("test-is-running") as log:
+            with JobLogger("test-is-running"):
                 time.sleep(5)
 
         thread = Thread(target=_task)
@@ -105,9 +105,11 @@ class JobLogTestCase(TestCase):
         self.assertEqual(True, JobLogModel.is_job_running("test-is-running", datetime.timedelta(seconds=5)))
         time.sleep(1)
         self.assertEqual(False, JobLogModel.is_job_running("test-is-running", timezone.timedelta(seconds=1)))
-        self.assertEqual(False, JobLogModel.is_job_running("test-is-running", datetime.timedelta(seconds=1)))
+        self.assertEqual(True, JobLogModel.is_job_running("test-is-running", timezone.timedelta(seconds=3)))
 
         thread.join()
+
+        self.assertEqual(False, JobLogModel.is_job_running("test-is-running"))
 
     def test_parallel(self):
         def _task():
