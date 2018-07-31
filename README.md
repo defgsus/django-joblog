@@ -142,8 +142,40 @@ for the specific fields. It's nothing special.
 
 ![admin changelist screenshot](./docs/admin-changelist.png)
 
-### This repository
+### Testing
 
-This repo contains a whole django project (`django_joblog_project`) for ease of development. 
-`setup.py` only exports the `django_joblog` app.
+Unit-tests are [Django-style](https://docs.djangoproject.com/en/2.0/topics/testing/overview/#running-tests) 
+and are placed in [django_joblog/tests.py](https://github.com/defgsus/django-joblog/blob/master/django_joblog/tests.py).
 
+Note that the *parallel* tests will fail with the **Sqlite** backend, because of database-locking.
+
+### The repository
+
+[The repo](https://github.com/defgsus/django-joblog) contains a whole django project (`django_joblog_project`) for ease of development. 
+`setup.py` only exports the `django_joblog` app. 
+
+The default database backend is configured to **MySQL**.
+
+To start the runserver or run the tests within the repo, open mysql console:
+
+```mysql
+CREATE USER 'django_logs_user'@'localhost' IDENTIFIED BY 'django_logs_pwd';
+
+CREATE DATABASE django_logs_test CHARACTER SET utf8 COLLATE utf8_general_ci;
+
+GRANT ALL ON django_logs_test.* TO 'django_logs_user'@'localhost';
+GRANT ALL ON test_django_logs_test.* TO 'django_logs_user'@'localhost';
+``` 
+
+Then alternatively, depending on the python version:
+```bash
+pip install MySQL-python    # for python 2
+pip install PyMySQL         # for python 3
+```
+
+And finally:
+```bash
+./manage.py tests
+# or
+./manage.py runserver
+```
