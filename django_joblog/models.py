@@ -35,7 +35,13 @@ class JobLogModel(models.Model):
     error_text = models.TextField(verbose_name=_("error log"), default=None, null=True, blank=True, editable=False)
 
     @classmethod
-    def is_job_running(cls, name, since_hours=24):
+    def is_job_running(cls, name, since_hours=None):
+        if since_hours is None:
+            return cls.objects.filter(
+                name=name,
+                state=JOB_LOG_STATE_RUNNING,
+            ).exists()
+
         date_started = timezone.now() - timezone.timedelta(hours=since_hours)
         return cls.objects.filter(
             name=name,
