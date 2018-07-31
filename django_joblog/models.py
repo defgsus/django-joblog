@@ -35,14 +35,21 @@ class JobLogModel(models.Model):
     error_text = models.TextField(verbose_name=_("error log"), default=None, null=True, blank=True, editable=False)
 
     @classmethod
-    def is_job_running(cls, name, since_hours=None):
-        if since_hours is None:
+    def is_job_running(cls, name, time_delta=None):
+        """
+        Return True if a job with the given name is currently running.
+        :param name: str
+        :param time_delta: datetime.timedelta, optional,
+                           if not None, return True only if the running job is started within now - time_delta
+        :return: bool
+        """
+        if time_delta is None:
             return cls.objects.filter(
                 name=name,
                 state=JOB_LOG_STATE_RUNNING,
             ).exists()
 
-        date_started = timezone.now() - timezone.timedelta(hours=since_hours)
+        date_started = timezone.now() - time_delta
         return cls.objects.filter(
             name=name,
             state=JOB_LOG_STATE_RUNNING,

@@ -1,4 +1,4 @@
-import time
+import time, datetime
 from threading import Thread
 
 from django.test import TestCase
@@ -90,6 +90,25 @@ class JobLogTestCase(TestCase):
 
         self.assertEqual("context1:context2: ValueError - This was bad", model.error_text.split("\n")[0])
 
+    def test_is_running(self):
+        def _task():
+            with JobLogger("test-is-running") as log:
+                time.sleep(5)
+
+        thread = Thread(target=_task)
+        thread.start()
+        time.sleep(.1)
+
+        self.assertEqual(False, JobLogModel.is_job_running("test-is-not-running"))
+        self.assertEqual(True, JobLogModel.is_job_running("test-is-running"))
+        self.assertEqual(True, JobLogModel.is_job_running("test-is-running", timezone.timedelta(seconds=5)))
+        self.assertEqual(True, JobLogModel.is_job_running("test-is-running", datetime.timedelta(seconds=5)))
+        time.sleep(1)
+        self.assertEqual(False, JobLogModel.is_job_running("test-is-running", timezone.timedelta(seconds=1)))
+        self.assertEqual(False, JobLogModel.is_job_running("test-is-running", datetime.timedelta(seconds=1)))
+
+        thread.join()
+
     def test_parallel(self):
         def _task():
             with JobLogger("test-parallel", parallel=True) as log:
@@ -112,10 +131,13 @@ class JobLogTestCase(TestCase):
                 time.sleep(1)
                 log.log("Great!")
 
-        Thread(target=_task).start()
+        thread = Thread(target=_task)
+        thread.start()
         time.sleep(0.1)
         with self.assertRaises(JobIsAlreadyRunningError):
             with JobLogger("test-no-parallel") as log:
                 log.log("try to run in parallel")
 
         self.assertEqual(1, JobLogModel.objects.filter(name="test-no-parallel").count())
+
+        thread.join()
