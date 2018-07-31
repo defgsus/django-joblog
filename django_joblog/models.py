@@ -44,14 +44,15 @@ class JobLogModel(models.Model):
         ).exists()
 
     @classmethod
-    def start_job(cls, name):
+    def start_job(cls, name, print_to_console=False):
         """Not part of public API, use JobLogger instead"""
         now = timezone.now()
         count = cls.objects.filter(name=name).count() + 1
-        print("\n%s.%s started @ %s" % (name, count, now))
+        if print_to_console:
+            print("\n%s.%s started @ %s" % (name, count, now))
         return cls.objects.create(name=name, count=count, date_started=now)
 
-    def finish(self, exception_or_error=None):
+    def finish(self, exception_or_error=None, print_to_console=False):
         """Not part of public API, use JobLogger instead"""
         self.date_ended = timezone.now()
         self.duration = self.date_ended - self.date_started
@@ -63,11 +64,12 @@ class JobLogModel(models.Model):
                 self.error_text = "%s" % exception_or_error
             self.state = JOB_LOG_STATE_ERROR
         self.save()
-        if self.log_text or self.error_text:
-            print("-----")
-        if self.log_text:
-            print("LOG: %s" % self.log_text)
-        if self.error_text:
-            print("ERROR: %s" % self.error_text)
-        print("%s finished after %s" % (self.name, self.duration))
+        if print_to_console:
+            if self.log_text or self.error_text:
+                print("-----")
+            if self.log_text:
+                print("LOG: %s" % self.log_text)
+            if self.error_text:
+                print("ERROR: %s" % self.error_text)
+            print("%s.%s finished after %s" % (self.name, self.count, self.duration))
 

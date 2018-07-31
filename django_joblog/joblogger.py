@@ -6,20 +6,28 @@ import traceback
 from django.utils.translation import ugettext_lazy as _
 
 
+__all__ = ("JobIsAlreadyRunningError", "JobLogger", "JobLoggerContext", "DummyJobLogger")
+
+
 class JobIsAlreadyRunningError(BaseException):
+    """
+    Error thrown, if a job with the same name is already running
+    """
     pass
 
 
 class JobLoggerBase(object):
     """
-    Base-class for JobLogger and DummyJobLogger
+    Base-class for JobLogger and DummyJobLogger.
+    Not part of public API.
     """
-    def __init__(self, name, parallel=False):
+    def __init__(self, name, parallel=False, print_to_console=False):
         self._name = name
         self._log_lines = []
         self._error_lines = []
         self._context = []
         self._allow_parallel = parallel
+        self._print_to_console = print_to_console
 
     @property
     def name(self):
@@ -31,7 +39,7 @@ class JobLoggerBase(object):
 
     @property
     def context(self):
-        """Returns the current context as str"""
+        """Returns the current context-prefix as str"""
         ctx = []
         for c in self._context:
             if not ctx or ctx[-1] != c:
@@ -51,14 +59,21 @@ class JobLoggerBase(object):
 class JobLogger(JobLoggerBase):
     """
     Automatic database logging,
-    also catches exceptions and stores them in DB
+    also catches exceptions and stores the traceback to the database
 
     with JobLogger("my_task") as job:
         the_task()
         job.log("some_info")
     """
-    def __init__(self, name, parallel=False):
-        super(JobLogger, self).__init__(name, parallel=parallel)
+    def __init__(self, name, parallel=False, print_to_console=False):
+        """
+        Constructs a JobLogger object. Always use with `with` statement.
+        :param name: str, The name of the job
+        :param parallel: bool, Allow parallel execution of jobs. If False, a JobIsAlreadyRunningError will be
+                         thrown, if a job with the same name is actually running
+        :param print_to_console: bool, if True, all log, error and exception texts are also printed to the console
+        """
+        super(JobLogger, self).__init__(name, parallel=parallel, print_to_console=print_to_console)
         self.job_model = None
 
     def __enter__(self):
@@ -99,20 +114,32 @@ class JobLogger(JobLoggerBase):
             raise e
 
     def log(self, line):
+        """
+        Add a line to the log output
+        :param line: anything
+        :return: None
+        """
         line = self.context + ("%s" % line).strip()
-        try:
-            print("LOG: %s" % line)
-        except (UnicodeDecodeError, UnicodeEncodeError):
-            pass
         self._log_lines.append(line)
+        if self._print_to_console:
+            try:
+                print("LOG: %s" % line)
+            except (UnicodeDecodeError, UnicodeEncodeError):
+                pass
 
     def error(self, line):
+        """
+        Add a line to the error-output
+        :param line: anything
+        :return: None
+        """
         line = self.context + ("%s" % line).strip()
-        try:
-            print("ERR: %s" % line)
-        except (UnicodeDecodeError, UnicodeEncodeError):
-            pass
         self._error_lines.append(line)
+        if self._print_to_console:
+            try:
+                print("ERR: %s" % line)
+            except (UnicodeDecodeError, UnicodeEncodeError):
+                pass
 
 
 class DummyJobLogger(JobLoggerBase):
@@ -136,19 +163,35 @@ class DummyJobLogger(JobLoggerBase):
 
     """
     def __init__(self, name="", parallel=False):
-        super(DummyJobLogger, self).__init__(name, parallel=parallel)
+        super(DummyJobLogger, self).__init__(name, parallel=parallel, print_to_console=True)
 
     def log(self, line):
+        """
+        Print text to the console
+        :param line: anything
+        :return: None
+        """
         line = self.context + "%s" % line
         if self.name:
             line = self.name + ": " + line
-        print("LOG: %s" % line)
+        try:
+            print("LOG: %s" % line)
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            pass
 
     def error(self, line):
+        """
+        Print text to the console
+        :param line: anything
+        :return: None
+        """
         line = self.context + "%s" % line
         if self.name:
             line = self.name + ": " + line
-        print("ERR: %s" % line)
+        try:
+            print("ERR: %s" % line)
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            pass
 
 
 class JobLoggerContext(object):
@@ -160,6 +203,8 @@ class JobLoggerContext(object):
             the_task_1(log)
         with JobLoggerContext(log, "subtask_2"):
             the_task_2(log)
+            with JobLoggerContext(log, "subsubtask_2"):
+                the_sub_task_2(log)
     """
     def __init__(self, log, name):
         self._log = log
