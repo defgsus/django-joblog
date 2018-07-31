@@ -6,6 +6,7 @@
 /static/
 media/
 db.sqlite3
+settings_local.py
 
 # libreoffice
 .~lock*.o*
