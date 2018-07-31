@@ -84,7 +84,7 @@ class JobLogger(JobLoggerBase):
                 _("The job '%s' is already running and 'parallel' was set to False") % self._name
             )
 
-        self.job_model = JobLogModel.start_job(self._name)
+        self.job_model = JobLogModel.start_job(self._name, print_to_console=self._print_to_console)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -107,10 +107,10 @@ class JobLogger(JobLoggerBase):
                     type_name,
                     "".join(reversed(traceback.format_tb(exc_tb)))
                 )
-            self.job_model.finish(exc_val)
+            self.job_model.finish(exc_val, print_to_console=self._print_to_console)
             return True
         except BaseException as e:
-            self.job_model.finish("%s" % e)
+            self.job_model.finish("%s" % e, print_to_console=self._print_to_console)
             raise e
 
     def log(self, line):

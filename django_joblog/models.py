@@ -66,10 +66,10 @@ class JobLogModel(models.Model):
         self.save()
         if print_to_console:
             if self.log_text or self.error_text:
-                print("-----")
+                print("\n---summary---")
             if self.log_text:
-                print("LOG: %s" % self.log_text)
+                print("LOG:\n%s" % self.log_text)
             if self.error_text:
-                print("ERROR: %s" % self.error_text)
+                print("ERROR:\n%s" % self.error_text)
             print("%s.%s finished after %s" % (self.name, self.count, self.duration))
 
