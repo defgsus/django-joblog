@@ -15,6 +15,8 @@ class JobLogModelAdmin(admin.ModelAdmin):
         "date_started_decorator", "date_ended_decorator", "duration",
         "state_decorator", "log_decorator", "error_log_decorator"
     )
+    search_fields = ("name", "log_text", "error_text")
+    list_filter = ("name",)
 
     def id_decorator(self, model):
         return "#%s" % model.id
