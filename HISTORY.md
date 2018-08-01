@@ -1,4 +1,8 @@
 
+## v0.1.1 - Aug/2018
+
+- add search and filter to admin view
+
 ## v0.1.0 - Jul/2018
 
 - make printing to console optional
