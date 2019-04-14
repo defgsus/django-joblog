@@ -170,12 +170,16 @@ GRANT ALL ON test_django_logs_test.* TO 'django_logs_user'@'localhost';
 Then alternatively, depending on the python version:
 ```bash
 pip install MySQL-python    # for python 2
+
 pip install PyMySQL         # for python 3
+pip install mysqlclient     #   or alternatively
 ```
 
 And finally:
 ```bash
-./manage.py tests
+./manage.py test
+
 # or
+./manage.py migrate
 ./manage.py runserver
 ```

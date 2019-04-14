@@ -80,10 +80,15 @@ WSGI_APPLICATION = 'django_joblog_project.wsgi.application'
 DATABASES = {
     # pip install MySQL-python # python 2
     # pip install PyMySQL # python 3
+    # or
+    # pip install mysqlclient # python 3
+    #
     # CREATE DATABASE django_logs_test CHARACTER SET utf8 COLLATE utf8_general_ci;
+    # CREATE DATABASE django_logs_test_test CHARACTER SET utf8 COLLATE utf8_general_ci;
     #
     # CREATE USER 'django_logs_user'@'localhost' IDENTIFIED BY 'django_logs_pwd';
     # GRANT ALL ON django_logs_test.* TO 'django_logs_user'@'localhost';
+    # GRANT ALL ON django_logs_test_test.* TO 'django_logs_user'@'localhost';
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'django_logs_test',
@@ -93,6 +98,9 @@ DATABASES = {
         # add recommendation from https://docs.djangoproject.com/en/1.10/ref/databases/#mysql-sql-mode
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+        },
+        'TEST': {
+            'NAME': 'django_logs_test_test',
         }
     }
 }
