@@ -102,6 +102,20 @@ DATABASES = {
         'TEST': {
             'NAME': 'django_logs_test_test',
         }
+    },
+    'joblog': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'django_logs_test',
+        'USER': 'django_logs_user',
+        'PASSWORD': 'django_logs_pwd',
+        'HOST': '127.0.0.1',
+        # add recommendation from https://docs.djangoproject.com/en/1.10/ref/databases/#mysql-sql-mode
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+        },
+        'TEST': {
+            'NAME': 'django_logs_test_test',
+        }
     }
 }
 

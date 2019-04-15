@@ -4,6 +4,8 @@ from __future__ import unicode_literals
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
+from django.conf import settings
+from django.db import DEFAULT_DB_ALIAS
 
 
 JOB_LOG_STATE_RUNNING = "running"
@@ -17,6 +19,17 @@ JOB_LOG_STATE_CHOICES = (
 )
 
 JOB_LOG_STATE_MAP = {s[0]: s[1] for s in JOB_LOG_STATE_CHOICES}
+
+
+def db_alias():
+    """
+    Returns the db name to use for JobLogModel.
+    Return "joblog" if such a database is configured else defaults to django.db.DEFAULT_DB_ALIAS
+    :return: str
+    """
+    if "joblog" in settings.DATABASES:
+        return "joblog"
+    return DEFAULT_DB_ALIAS
 
 
 class JobLogModel(models.Model):
@@ -44,13 +57,13 @@ class JobLogModel(models.Model):
         :return: bool
         """
         if time_delta is None:
-            return cls.objects.filter(
+            return cls.objects.using(db_alias()).filter(
                 name=name,
                 state=JOB_LOG_STATE_RUNNING,
             ).exists()
 
         date_started = timezone.now() - time_delta
-        return cls.objects.filter(
+        return cls.objects.using(db_alias()).filter(
             name=name,
             state=JOB_LOG_STATE_RUNNING,
             date_started__gte=date_started,

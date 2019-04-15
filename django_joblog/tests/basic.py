@@ -4,11 +4,18 @@ from threading import Thread
 from django.test import TestCase
 from django.utils import timezone
 
-from django_joblog.models import JobLogModel
+from django_joblog.models import JobLogModel, db_alias
 from django_joblog import *
 
 
+def manager():
+    return JobLogModel.objects.using(db_alias())
+
+
 class JobLogBasicTestCase(TestCase):
+
+    databases = ("default", "joblog")
+
     def setUp(self):
         pass
 
@@ -16,7 +23,7 @@ class JobLogBasicTestCase(TestCase):
         with JobLogger("test-db-creation"):
             pass
 
-        qset = JobLogModel.objects.filter(name="test-db-creation")
+        qset = manager().filter(name="test-db-creation")
         self.assertEqual(1, qset.count())
         self.assertEqual(1, qset[0].count)
         self.assertEqual("test-db-creation", qset[0].name)
@@ -27,7 +34,7 @@ class JobLogBasicTestCase(TestCase):
         with JobLogger("test-count"):
             pass
 
-        qset = JobLogModel.objects.filter(name="test-count").order_by("-date_started")
+        qset = manager().filter(name="test-count").order_by("-date_started")
         self.assertEqual(2, qset.count())
         self.assertEqual(2, qset[0].count)
 
@@ -36,7 +43,7 @@ class JobLogBasicTestCase(TestCase):
         with JobLogger("test-time"):
             time.sleep(1)
 
-        model = JobLogModel.objects.get(name="test-time")
+        model = manager().get(name="test-time")
 
         self.assertLessEqual((model.date_started - now).total_seconds(), 0.01)
         self.assertGreaterEqual(model.duration.total_seconds(), 1.0)
@@ -49,7 +56,7 @@ class JobLogBasicTestCase(TestCase):
             log.error("Hey!")
             log.error("Jude!")
 
-        model = JobLogModel.objects.get(name="test-log")
+        model = manager().get(name="test-log")
 
         self.assertEqual("Hello!\nWorld!", model.log_text)
         self.assertEqual("Hey!\nJude!", model.error_text)
@@ -67,7 +74,7 @@ class JobLogBasicTestCase(TestCase):
             log.log("outside")
             log.error("eoutside")
 
-        model = JobLogModel.objects.get(name="test-context")
+        model = manager().get(name="test-context")
 
         self.assertEqual("outside\ncontext1: inside\ncontext1:context2: nested\noutside", model.log_text)
         self.assertEqual("eoutside\ncontext1: einside\ncontext1:context2: enested\neoutside", model.error_text)
@@ -76,7 +83,7 @@ class JobLogBasicTestCase(TestCase):
         with JobLogger("test-exception"):
             raise ValueError("This was bad")
 
-        model = JobLogModel.objects.get(name="test-exception")
+        model = manager().get(name="test-exception")
 
         self.assertEqual("ValueError - This was bad", model.error_text.split("\n")[0])
 
@@ -86,7 +93,7 @@ class JobLogBasicTestCase(TestCase):
                 with JobLoggerContext(log, "context2"):
                     raise ValueError("This was bad")
 
-        model = JobLogModel.objects.get(name="test-context-exception")
+        model = manager().get(name="test-context-exception")
 
         self.assertEqual("context1:context2: ValueError - This was bad", model.error_text.split("\n")[0])
 

@@ -9,6 +9,9 @@ from django_joblog import *
 
 
 class JobLogDbUpdatesTestCase(TestCase):
+
+    databases = ("default", "joblog")
+
     def setUp(self):
         pass
 
@@ -21,6 +24,7 @@ class JobLogDbUpdatesTestCase(TestCase):
                 for msg in MESSAGES:
                     time.sleep(.5)
                     log.log(msg)
+                    log.error(msg)
 
         thread = Thread(target=_task)
         thread.start()
@@ -36,12 +40,15 @@ class JobLogDbUpdatesTestCase(TestCase):
 
                 expected_log.append(msg)
                 self.assertEqual("\n".join(expected_log), model.log_text)
+                self.assertEqual("\n".join(expected_log), model.error_text)
 
         finally:
             thread.join()
 
-    # TODO: this needs to work!
     def test_log_update_transaction(self):
+        """
+        Make sure that a transaction inside a job does not block live-updates of logs
+        """
         JOB_NAME = "test-log-update-transaction"
         MESSAGES = ["one second", "two seconds", "three seconds"]
 
@@ -51,6 +58,7 @@ class JobLogDbUpdatesTestCase(TestCase):
                     for msg in MESSAGES:
                         time.sleep(.5)
                         log.log(msg)
+                        log.error(msg)
 
         thread = Thread(target=_task)
         thread.start()
@@ -65,5 +73,6 @@ class JobLogDbUpdatesTestCase(TestCase):
 
                 expected_log.append(msg)
                 self.assertEqual("\n".join(expected_log), model.log_text)
+                self.assertEqual("\n".join(expected_log), model.error_text)
         finally:
             thread.join()

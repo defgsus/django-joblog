@@ -3,11 +3,14 @@ from threading import Thread
 
 from django.test import TestCase
 
-from django_joblog.models import JobLogModel
+from django_joblog.models import JobLogModel, db_alias
 from django_joblog import *
 
 
 class JobLogParallelTestCase(TestCase):
+
+    databases = ("default", "joblog")
+
     def setUp(self):
         pass
 
@@ -25,7 +28,7 @@ class JobLogParallelTestCase(TestCase):
         for t in threads:
             t.join()
 
-        self.assertEqual(3, JobLogModel.objects.filter(name="test-parallel").count())
+        self.assertEqual(3, JobLogModel.objects.using(db_alias()).filter(name="test-parallel").count())
 
     def test_no_parallel(self):
         def _task():
@@ -42,7 +45,7 @@ class JobLogParallelTestCase(TestCase):
                 with JobLogger("test-no-parallel") as log:
                     log.log("try to run in parallel")
 
-            self.assertEqual(1, JobLogModel.objects.filter(name="test-no-parallel").count())
+            self.assertEqual(1, JobLogModel.objects.using(db_alias()).filter(name="test-no-parallel").count())
 
         finally:
             thread.join()

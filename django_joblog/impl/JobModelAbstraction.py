@@ -11,13 +11,18 @@ from .exceptions import JobIsAlreadyRunningError
 
 class JobModelAbstraction(object):
     """
-    Base-class JobLogger communication with database.
+    Helper for JobLogger communication with database.
     Not part of public API.
     """
     def __init__(self, joblog):
         self._p = joblog
         self._job_model = None
         self._thread = None
+
+    @property
+    def manager(self):
+        from django_joblog.models import JobLogModel, db_alias
+        return JobLogModel.objects.using(db_alias())
 
     def is_job_running(self, time_delta=None):
         """
@@ -26,23 +31,22 @@ class JobModelAbstraction(object):
                            if not None, return True only if the running job is started within now - time_delta
         :return: bool
         """
-        from django_joblog.models import JobLogModel, JOB_LOG_STATE_ERROR, JOB_LOG_STATE_FINISHED, JOB_LOG_STATE_RUNNING
+        from django_joblog.models import JOB_LOG_STATE_ERROR, JOB_LOG_STATE_FINISHED, JOB_LOG_STATE_RUNNING
 
         if time_delta is None:
-            return JobLogModel.objects.filter(
+            return self.manager.filter(
                 name=self._p.name,
                 state=JOB_LOG_STATE_RUNNING,
             ).exists()
 
         date_started = timezone.now() - time_delta
-        return JobLogModel.objects.filter(
+        return self.manager.filter(
             name=self._p.name,
             state=JOB_LOG_STATE_RUNNING,
             date_started__gte=date_started,
         ).exists()
 
     def create_model(self):
-        from django_joblog.models import JobLogModel
         if not self._p.allow_parallel and self.is_job_running():
             raise JobIsAlreadyRunningError(
                 _("The job '%s' is already running and 'parallel' was set to False") % self._p.name
@@ -51,6 +55,8 @@ class JobModelAbstraction(object):
         self._job_model = self._create_model()
 
     def update_model(self):
+        from django_joblog.models import db_alias
+
         if not self._job_model:
             self.create_model()
 
@@ -66,23 +72,21 @@ class JobModelAbstraction(object):
         if log_text != self._job_model.log_text or error_text != self._job_model.error_text:
             self._job_model.log_text = log_text
             self._job_model.error_text = error_text
-            self._job_model.save()
+            self._job_model.save(using=db_alias())
 
     def finish(self, error_text=None):
         if self._job_model:
             self._finish(error_text)
 
     def _create_model(self):
-        from django_joblog.models import JobLogModel
         now = timezone.now()
-        count = JobLogModel.objects.filter(name=self._p.name).count() + 1
+        count = self.manager.filter(name=self._p.name).count() + 1
         if self._p.print_to_console:
             print("\n%s.%s started @ %s" % (self._p.name, count, now))
-        return JobLogModel.objects.create(name=self._p.name, count=count, date_started=now)
+        return self.manager.create(name=self._p.name, count=count, date_started=now)
 
     def _finish(self, exception_or_error=None):
-        """Not part of public API, use JobLogger instead"""
-        from django_joblog.models import JobLogModel, JOB_LOG_STATE_FINISHED, JOB_LOG_STATE_ERROR
+        from django_joblog.models import db_alias, JOB_LOG_STATE_FINISHED, JOB_LOG_STATE_ERROR
         
         model = self._job_model
         
@@ -95,8 +99,8 @@ class JobModelAbstraction(object):
             else:
                 model.error_text = "%s" % exception_or_error
             model.state = JOB_LOG_STATE_ERROR
-        model.save()
-        
+        model.save(using=db_alias())
+
         if self._p.print_to_console:
             if model.log_text or model.error_text:
                 print("\n---summary---")
