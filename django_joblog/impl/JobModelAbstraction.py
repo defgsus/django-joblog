@@ -48,7 +48,7 @@ class JobModelAbstraction(object):
                 _("The job '%s' is already running and 'parallel' was set to False") % self._p.name
             )
 
-        self._job_model = JobLogModel.start_job(self._p.name, print_to_console=self._p.print_to_console)
+        self._job_model = self._create_model()
 
     def update_model(self):
         if not self._job_model:
@@ -70,4 +70,39 @@ class JobModelAbstraction(object):
 
     def finish(self, error_text=None):
         if self._job_model:
-            self._job_model.finish(error_text, print_to_console=self._p.print_to_console)
+            self._finish(error_text)
+
+    def _create_model(self):
+        from django_joblog.models import JobLogModel
+        now = timezone.now()
+        count = JobLogModel.objects.filter(name=self._p.name).count() + 1
+        if self._p.print_to_console:
+            print("\n%s.%s started @ %s" % (self._p.name, count, now))
+        return JobLogModel.objects.create(name=self._p.name, count=count, date_started=now)
+
+    def _finish(self, exception_or_error=None):
+        """Not part of public API, use JobLogger instead"""
+        from django_joblog.models import JobLogModel, JOB_LOG_STATE_FINISHED, JOB_LOG_STATE_ERROR
+        
+        model = self._job_model
+        
+        model.date_ended = timezone.now()
+        model.duration = model.date_ended - model.date_started
+        model.state = JOB_LOG_STATE_FINISHED
+        if exception_or_error is not None:
+            if model.error_text:
+                model.error_text = "%s\n%s" % (model.error_text, exception_or_error)
+            else:
+                model.error_text = "%s" % exception_or_error
+            model.state = JOB_LOG_STATE_ERROR
+        model.save()
+        
+        if self._p.print_to_console:
+            if model.log_text or model.error_text:
+                print("\n---summary---")
+            if model.log_text:
+                print("LOG:\n%s" % model.log_text)
+            if model.error_text:
+                print("ERROR:\n%s" % model.error_text)
+            print("%s.%s finished after %s" % (model.name, model.count, model.duration))
+

@@ -56,33 +56,3 @@ class JobLogModel(models.Model):
             date_started__gte=date_started,
         ).exists()
 
-    @classmethod
-    def start_job(cls, name, print_to_console=False):
-        """Not part of public API, use JobLogger instead"""
-        now = timezone.now()
-        count = cls.objects.filter(name=name).count() + 1
-        if print_to_console:
-            print("\n%s.%s started @ %s" % (name, count, now))
-        return cls.objects.create(name=name, count=count, date_started=now)
-
-    def finish(self, exception_or_error=None, print_to_console=False):
-        """Not part of public API, use JobLogger instead"""
-        self.date_ended = timezone.now()
-        self.duration = self.date_ended - self.date_started
-        self.state = JOB_LOG_STATE_FINISHED
-        if exception_or_error is not None:
-            if self.error_text:
-                self.error_text = "%s\n%s" % (self.error_text, exception_or_error)
-            else:
-                self.error_text = "%s" % exception_or_error
-            self.state = JOB_LOG_STATE_ERROR
-        self.save()
-        if print_to_console:
-            if self.log_text or self.error_text:
-                print("\n---summary---")
-            if self.log_text:
-                print("LOG:\n%s" % self.log_text)
-            if self.error_text:
-                print("ERROR:\n%s" % self.error_text)
-            print("%s.%s finished after %s" % (self.name, self.count, self.duration))
-
