@@ -1,6 +1,8 @@
 # encoding=utf-8
 from __future__ import unicode_literals
 
+import warnings
+
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
@@ -27,9 +29,11 @@ def db_alias():
     Return "joblog" if such a database is configured else defaults to django.db.DEFAULT_DB_ALIAS
     :return: str
     """
-    if "joblog" in settings.DATABASES:
-        return "joblog"
-    return DEFAULT_DB_ALIAS
+    alias = getattr(settings, "JOBLOG_CONFIG", {}).get("db_alias", DEFAULT_DB_ALIAS)
+    if alias not in settings.DATABASES:
+        warnings.warn("Configured job-logger db alias '%s' is not in settings.DATABASES" % alias)
+        return DEFAULT_DB_ALIAS
+    return alias
 
 
 class JobLogModel(models.Model):

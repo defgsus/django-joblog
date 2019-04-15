@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import traceback
 
 from django.utils.translation import ugettext_lazy as _
+from django.conf import settings
 
 from .JobModelAbstraction import JobModelAbstraction
 
@@ -22,7 +23,7 @@ class JobLoggerBase(object):
         self._error_lines = []
         self._context = []
         self._allow_parallel = parallel
-        self._print_to_console = print_to_console
+        self._print_to_console = print_to_console or getattr(settings, "JOBLOG_CONFIG", {}).get("print_to_console", False)
 
     @property
     def name(self):
@@ -74,6 +75,7 @@ class JobLogger(JobLoggerBase):
         """
         super(JobLogger, self).__init__(name, parallel=parallel, print_to_console=print_to_console)
         self._model = None
+        self._live_updates = getattr(settings, "JOBLOG_CONFIG", {}).get("live_updates", False)
 
     def __enter__(self):
         if self._model is None:
@@ -113,10 +115,10 @@ class JobLogger(JobLoggerBase):
         line = self.context + ("%s" % line).strip()
         self._log_lines.append(line)
 
-        if self._model:
+        if self._model and self._live_updates:
             self._model.update_model()
 
-        if self._print_to_console:
+        if self.print_to_console:
             try:
                 print("LOG: %s" % line)
             except (UnicodeDecodeError, UnicodeEncodeError):
@@ -131,10 +133,10 @@ class JobLogger(JobLoggerBase):
         line = self.context + ("%s" % line).strip()
         self._error_lines.append(line)
 
-        if self._model:
+        if self._model and self._live_updates:
             self._model.update_model()
 
-        if self._print_to_console:
+        if self.print_to_console:
             try:
                 print("ERR: %s" % line)
             except (UnicodeDecodeError, UnicodeEncodeError):

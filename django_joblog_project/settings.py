@@ -28,6 +28,18 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+JOBLOG_CONFIG = {
+    # name of alternate database connection, to circumvent transactions on default connection
+    "db_alias": "joblog",
+    # enable .log and .error to write to database immediately
+    "live_updates": True,
+    # enable a constant update of job state - to check for jobs which went away without notice
+    "ping": True,
+    # always print to console during jobs
+    # "print_to_console": True
+}
+
+
 # Application definition
 
 INSTALLED_APPS = [
