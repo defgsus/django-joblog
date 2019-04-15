@@ -47,7 +47,7 @@ class JobLogBasicTestCase(TestCase):
 
         self.assertLessEqual((model.date_started - now).total_seconds(), 0.01)
         self.assertGreaterEqual(model.duration.total_seconds(), 1.0)
-        self.assertLessEqual(model.duration.total_seconds(), 1.1)
+        self.assertLessEqual(model.duration.total_seconds(), 1.6)
 
     def test_log(self):
         with JobLogger("test-log") as log:

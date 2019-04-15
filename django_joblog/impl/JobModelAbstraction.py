@@ -56,10 +56,12 @@ class JobModelAbstraction(object):
 
         self._job_model = self._create_model()
 
-    def update_model(self):
+    def update_model(self, allow_fail=False):
         from django_joblog.models import db_alias
         with self._update_lock:
-            model = self._get_model()
+            model = self._get_model(allow_fail=allow_fail)
+            if not model and allow_fail:
+                return
 
             now = timezone.now()
             duration = now - model.date_started
@@ -91,11 +93,18 @@ class JobModelAbstraction(object):
         self._model_pk = model.pk
         return model
 
-    def _get_model(self):
+    def _get_model(self, allow_fail=False):
+        from django_joblog.models import JobLogModel
         if self._model_pk is None:
             return self._create_model()
         else:
-            return self.manager.get(pk=self._model_pk)
+            if not allow_fail:
+                return self.manager.get(pk=self._model_pk)
+            else:
+                try:
+                    return self.manager.get(pk=self._model_pk)
+                except JobLogModel.DoesNotExist:
+                    return None
 
     def _finish(self, exception_or_error=None):
         from django_joblog.models import db_alias, JOB_LOG_STATE_FINISHED, JOB_LOG_STATE_ERROR
