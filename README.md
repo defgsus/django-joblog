@@ -1,6 +1,22 @@
-## django-joblog v0.1.1
+# django-joblog v0.1.1
 
 A generic django-utility that helps to log stuff to the database.
+
+- [Installation](#installation)
+- [Usage](#usage)
+    - [Parallelism](#parallelism)
+    - [Context](#context)
+    - [DummyJobLogger](#dummyjoblogger)
+    - [Using the Model](#using-the-model)
+- [Configuration](#configuration)
+    - [DB alias](#db-alias)
+    - [Live updates](#live-updates)
+    - [Ping mode](#ping)
+- [Testing](#testing)
+    - [This repo](#the-repository)
+
+
+# Overview
 
 ```python
 from django_joblog import JobLogger
@@ -25,7 +41,7 @@ This can be useful in conjuction with cronjobs and asynchronous tasks with, e.g.
 [django-rq](https://github.com/rq/django-rq), ...
 
 
-### Installation
+# Installation
 
 ```bash
 pip install django-joblog
@@ -33,10 +49,13 @@ pip install django-joblog
 
 Then add `django_joblog` to `INSTALLED_APPS` in your django `settings.py` and call `manage.py migrate`.
 
-### Requirements
+## Requirements
 
 - [Python](https://www.python.org) 2 or 3
 - [Django](https://www.djangoproject.com) >= 1.10
+
+
+# Usage 
 
 ### Parallelism
 
@@ -66,7 +85,7 @@ def cronjob_open_task_worker():
             pass
 ```
 
-### Change logging context
+### Context
 
 To change the logging-context within a job, use `JobLoggerContext`. 
 It might help to spot at which point an output is generated or an exception is thrown.
@@ -110,11 +129,13 @@ api:submit: IOError - Status code 404 returned for url https://my.api.com/submit
    api.submit(data) 
 ```
 
-### Prepare for database logging, but do not require it
+### DummyJobLogger
 
 You can use the `DummyJobLogger` class to provide logging without storing stuff to the database. 
 This might be useful for debugging purposes, or if you run a function as a `manage.py`-task but
 need database logging only for cronjobs.
+
+In general, functions can be designed to work with a `JobLogger` but do not *require* it.
 
 ```python
 from django_joblog import JobLogger, DummyJobLogger
@@ -142,14 +163,72 @@ for the specific fields. It's nothing special.
 
 ![admin changelist screenshot](./docs/admin-changelist.png)
 
-### Testing
+
+# Configuration
+
+The `django_joblog` app can be configured with an object in your django project `settings.py`, 
+for example:
+
+```python
+JOBLOG_CONFIG = {
+    # name of alternate database connection, to circumvent transactions on default connection
+    "db_alias": "joblog",
+    # enable .log and .error to write to database immediately
+    "live_updates": True,
+    # enable a constant update of job state - to check for jobs which went away without notice
+    "ping": True,
+    "ping_interval": 1,
+    # always print to console during jobs
+    "print_to_console": True
+}
+```
+
+The whole object and all of it's fields are optional. 
+
+### db_alias
+
+`db_alias` defines an alternative name for the database connection. 
+This name must be present in the `DATABASE` setting. 
+
+One does not normally need to define this setting unless you want to make sure that 
+[Live updates](#live-updates) or using the [Ping mode](#ping) always work event when transactions
+are used inside the job. Consider this example:
+
+```python
+from django.db import transaction
+from django_joblog import JobLogger
+
+with JobLogger("my-job") as job:
+    job.log("Outside transaction")
+    with transaction.atomic():
+        job.log("Inside transaction")
+        # ...other stuff...
+```   
+
+If you are using [Live updates](#live-updates) and need to make sure that the second log (Inside transaction)
+is immediately stored to the database you need to define a second database connection. 
+It can just be a copy of the `'default'` database setting.    
+
+### live updates
+
+Setting `live_updates` to `True` will store the current log and error texts as long with the current
+job duration to database whenever `JobLogger.log()` or `JobLogger.error()` is called.
+
+### ping
+
+Setting `ping` to `True` will spawn a separate thread when calling `with JobLogger(...)` that will 
+constantly update the joblog database with the current log text, error text and duration. 
+The update-interval is configured with `ping_interval` in seconds. 
+
+
+# Testing
 
 Unit-tests are [Django-style](https://docs.djangoproject.com/en/2.0/topics/testing/overview/#running-tests) 
 and are placed in [django_joblog/tests.py](https://github.com/defgsus/django-joblog/blob/master/django_joblog/tests.py).
 
 Note that the *parallel* tests will fail with the **Sqlite** backend, because of database-locking.
 
-### The repository
+## The repository
 
 [The repo](https://github.com/defgsus/django-joblog) contains a whole django project (`django_joblog_project`) for ease of development. 
 `setup.py` only exports the `django_joblog` app. 
@@ -164,7 +243,7 @@ CREATE USER 'django_logs_user'@'localhost' IDENTIFIED BY 'django_logs_pwd';
 CREATE DATABASE django_logs_test CHARACTER SET utf8 COLLATE utf8_general_ci;
 
 GRANT ALL ON django_logs_test.* TO 'django_logs_user'@'localhost';
-GRANT ALL ON test_django_logs_test.* TO 'django_logs_user'@'localhost';
+GRANT ALL ON django_logs_test_test.* TO 'django_logs_user'@'localhost';
 ``` 
 
 Then alternatively, depending on the python version:
