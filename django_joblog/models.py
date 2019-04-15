@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import warnings
+import enum
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
@@ -12,17 +13,14 @@ from django.db import DEFAULT_DB_ALIAS
 from . import Config
 
 
-JOB_LOG_STATE_RUNNING = "running"
-JOB_LOG_STATE_FINISHED = "finished"
-JOB_LOG_STATE_ERROR = "error"
-
-JOB_LOG_STATE_CHOICES = (
-    (JOB_LOG_STATE_RUNNING, _("▶ running")),
-    (JOB_LOG_STATE_FINISHED, _("✔ finished")),
-    (JOB_LOG_STATE_ERROR, _("❌ error")),
-)
-
-JOB_LOG_STATE_MAP = {s[0]: s[1] for s in JOB_LOG_STATE_CHOICES}
+class JobLogStates(enum.Enum):
+    """
+    Enum for all possible states of JobLogModel.state field
+    """
+    running = _("▶ running")
+    finished = _("✔ finished")
+    error = _("❌ error")
+    halted = _("❎ halted")
 
 
 def db_alias():
@@ -49,7 +47,7 @@ class JobLogModel(models.Model):
     date_ended = models.DateTimeField(verbose_name=_("ended"), default=None, editable=False, null=True, blank=True, db_index=True)
     duration = models.DurationField(verbose_name=_("duration"), default=None, null=True, blank=True, db_index=True)
     state = models.CharField(verbose_name=_("state"), max_length=64, editable=False, db_index=True,
-                             choices=JOB_LOG_STATE_CHOICES, default=JOB_LOG_STATE_RUNNING)
+                             choices=[(e.name, e.value) for e in JobLogStates], default=JobLogStates.running.name)
     log_text = models.TextField(verbose_name=_("log"), default=None, null=True, blank=True, editable=False)
     error_text = models.TextField(verbose_name=_("error log"), default=None, null=True, blank=True, editable=False)
 
@@ -71,13 +69,13 @@ class JobLogModel(models.Model):
         if time_delta is None:
             qset = cls.objects.using(db_alias()).filter(
                 name=name,
-                state=JOB_LOG_STATE_RUNNING,
+                state=JobLogStates.running.name,
             )
         else:
             date_started = timezone.now() - time_delta
             qset = cls.objects.using(db_alias()).filter(
                 name=name,
-                state=JOB_LOG_STATE_RUNNING,
+                state=JobLogStates.running.name,
                 date_started__gte=date_started,
             )
 

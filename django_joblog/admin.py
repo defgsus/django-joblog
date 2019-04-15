@@ -5,7 +5,7 @@ from django.contrib import admin
 from django.utils.html import mark_safe, escape
 from django.utils.translation import ugettext_lazy as _
 
-from .models import JobLogModel, JOB_LOG_STATE_MAP
+from .models import JobLogModel, JobLogStates
 
 
 class JobLogModelAdmin(admin.ModelAdmin):
@@ -33,7 +33,7 @@ class JobLogModelAdmin(admin.ModelAdmin):
     date_ended_decorator.short_description = _("ended")
 
     def state_decorator(self, model):
-        state = JOB_LOG_STATE_MAP.get(model.state, model.state)
+        state = getattr(JobLogStates, model.state, model.state)
         return mark_safe('<span style="white-space: nowrap">%s</span>' % state)
     state_decorator.short_description = _("state")
 

@@ -33,7 +33,7 @@ class JobModelAbstraction(object):
                            if not None, return True only if the running job is started within now - time_delta
         :return: bool
         """
-        from django_joblog.models import JobLogModel, JOB_LOG_STATE_ERROR, JOB_LOG_STATE_FINISHED, JOB_LOG_STATE_RUNNING
+        from django_joblog.models import JobLogModel
         return JobLogModel.is_job_running(self._p.name, time_delta=time_delta)
 
     def create_model(self):
@@ -95,19 +95,19 @@ class JobModelAbstraction(object):
                     return None
 
     def _finish(self, exception_or_error=None):
-        from django_joblog.models import db_alias, JOB_LOG_STATE_FINISHED, JOB_LOG_STATE_ERROR
+        from django_joblog.models import db_alias, JobLogStates
         
         model = self._get_model()
         
         model.date_ended = timezone.now()
         model.duration = model.date_ended - model.date_started
-        model.state = JOB_LOG_STATE_FINISHED
+        model.state = JobLogStates.finished.name
         if exception_or_error is not None:
             if model.error_text:
                 model.error_text = "%s\n%s" % (model.error_text, exception_or_error)
             else:
                 model.error_text = "%s" % exception_or_error
-            model.state = JOB_LOG_STATE_ERROR
+            model.state = JobLogStates.error.name
         model.save(using=db_alias())
 
         if self._p.print_to_console:
