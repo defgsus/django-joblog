@@ -36,10 +36,13 @@ class JobLogParallelTestCase(TestCase):
         thread = Thread(target=_task)
         thread.start()
         time.sleep(0.1)
-        with self.assertRaises(JobIsAlreadyRunningError):
-            with JobLogger("test-no-parallel") as log:
-                log.log("try to run in parallel")
 
-        self.assertEqual(1, JobLogModel.objects.filter(name="test-no-parallel").count())
+        try:
+            with self.assertRaises(JobIsAlreadyRunningError):
+                with JobLogger("test-no-parallel") as log:
+                    log.log("try to run in parallel")
 
-        thread.join()
+            self.assertEqual(1, JobLogModel.objects.filter(name="test-no-parallel").count())
+
+        finally:
+            thread.join()

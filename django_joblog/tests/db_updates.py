@@ -25,18 +25,23 @@ class JobLogDbUpdatesTestCase(TestCase):
         thread = Thread(target=_task)
         thread.start()
         time.sleep(0.1)
-        self.assertEqual(1, JobLogModel.objects.filter(name=JOB_NAME).count())
 
-        expected_log = []
-        for i, msg in enumerate(MESSAGES):
-            time.sleep(.5)
-            model = JobLogModel.objects.get(name=JOB_NAME)
+        try:
+            self.assertEqual(1, JobLogModel.objects.filter(name=JOB_NAME).count())
 
-            expected_log.append(msg)
-            self.assertEqual("\n".join(expected_log), model.log_text)
+            expected_log = []
+            for i, msg in enumerate(MESSAGES):
+                time.sleep(.5)
+                model = JobLogModel.objects.get(name=JOB_NAME)
+
+                expected_log.append(msg)
+                self.assertEqual("\n".join(expected_log), model.log_text)
+
+        finally:
+            thread.join()
 
     # TODO: this needs to work!
-    def x_test_log_update_transaction(self):
+    def test_log_update_transaction(self):
         JOB_NAME = "test-log-update-transaction"
         MESSAGES = ["one second", "two seconds", "three seconds"]
 
@@ -50,12 +55,15 @@ class JobLogDbUpdatesTestCase(TestCase):
         thread = Thread(target=_task)
         thread.start()
         time.sleep(0.1)
-        self.assertEqual(1, JobLogModel.objects.filter(name=JOB_NAME).count())
+        try:
+            self.assertEqual(1, JobLogModel.objects.filter(name=JOB_NAME).count())
 
-        expected_log = []
-        for i, msg in enumerate(MESSAGES):
-            time.sleep(.5)
-            model = JobLogModel.objects.get(name=JOB_NAME)
+            expected_log = []
+            for i, msg in enumerate(MESSAGES):
+                time.sleep(.5)
+                model = JobLogModel.objects.get(name=JOB_NAME)
 
-            expected_log.append(msg)
-            self.assertEqual("\n".join(expected_log), model.log_text)
+                expected_log.append(msg)
+                self.assertEqual("\n".join(expected_log), model.log_text)
+        finally:
+            thread.join()
