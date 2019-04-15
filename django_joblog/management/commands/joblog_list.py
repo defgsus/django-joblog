@@ -14,7 +14,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("-s", "--state", nargs="+", type=str, default=[],
-                            help="Specify states of jobs to list (running, finished, error, halted)")
+                            help="Specify states of jobs to list (running, finished, error, vanished)")
 
     def handle(self, *args, **options):
         if not options["state"]:

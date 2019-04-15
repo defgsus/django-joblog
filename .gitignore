@@ -1,5 +1,6 @@
 # setuptools
 /dist/
+/build/
 /*.egg-info
 
 # Django App specifics

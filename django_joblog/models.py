@@ -20,7 +20,7 @@ class JobLogStates(enum.Enum):
     running = _("▶ running")
     finished = _("✔ finished")
     error = _("❌ error")
-    halted = _("⊙ halted")
+    vanished = _("⊙ vanished")
 
 
 def db_alias():
@@ -59,7 +59,7 @@ class JobLogModel(models.Model):
         :param time_delta: datetime.timedelta, optional,
                            if not None, return True only if the running job is started within now - time_delta
         :param ping: bool, overrides the "ping" setting in django.conf.settings.JOBLOG_CONFIG
-                When true, jobs will be considered "halted" when their "duration" field is significantly
+                When true, jobs will be considered "vanished" when their "duration" field is significantly
                 smaller than their true duration
         :return: bool
         """
@@ -91,7 +91,7 @@ class JobLogModel(models.Model):
             true_duration = now - date_started
 
             if not duration:
-                if true_duration.total_seconds() < leeway:
+                if true_duration.total_seconds() < leeway + 1:
                     # a probably still running job which has not updated it's "duration" field yet
                     return True
                 continue
@@ -105,7 +105,7 @@ class JobLogModel(models.Model):
     @classmethod
     def cleanup(cls, joblog=None):
         """
-        Set all jobs that are running but who's update is older than JOBLOG_CONFIG["ping_interval"] to 'halted'.
+        Set all jobs that are running but who's update is older than JOBLOG_CONFIG["ping_interval"] to 'vanished'.
         Careful! JOBLOG_CONFIG["ping"] must be enabled for this to work reliably.
         :param joblog: optional JobLogger instance to log the result
         """
@@ -136,11 +136,11 @@ class JobLogModel(models.Model):
             if not to_delete:
                 joblog.log("%s job(s) running, all valid" % num_running)
             else:
-                joblog.log("%s job(s) running, %s halted" % (num_running, len(to_delete)))
+                joblog.log("%s job(s) running, %s vanished" % (num_running, len(to_delete)))
                 for pk in to_delete:
                     try:
                         job = cls.objects.using(db_alias()).get(pk=pk)
-                        job.state = JobLogStates.halted.name
+                        job.state = JobLogStates.vanished.name
                         if not job.date_ended:
                             if job.duration:
                                 job.date_ended = job.date_started + job.duration

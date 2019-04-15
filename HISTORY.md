@@ -1,4 +1,4 @@
-## v0.2.0 - Apr/2019
+## v0.2.1 - Apr/2019
 
 - add `JOBLOG_CONFIG` setting
 - add `live_updates` and `ping` mode

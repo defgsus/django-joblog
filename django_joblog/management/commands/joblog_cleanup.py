@@ -12,7 +12,7 @@ from django_joblog import Config, JobLogger
 
 
 class Command(BaseCommand):
-    help = "Set running jobs that seem to be killed to 'halted' state - for 'ping' mode"
+    help = "Set running jobs that seem to be killed to 'vanished' state - for 'ping' mode"
 
     def add_arguments(self, parser):
         parser.add_argument("-f", "--force", nargs="?", type=bool, const=True, default=False,

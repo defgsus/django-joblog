@@ -1,4 +1,4 @@
-# django-joblog v0.2.0
+# django-joblog v0.2.1
 
 A generic django-utility that helps to log stuff to the database.
 
@@ -227,7 +227,7 @@ New jobs with the same name will be blocked from execution.
 However, enabling `ping` mode will make sure, that if a job (in database) who's `duration` is 
 yet undefined or larger than the `ping_interval` can be considered stopped.  
 
-To set those dangling job's database state to `halted` use: 
+To set those dangling job's database state to `vanished` use: 
 ```bash
 ./manage.py joblog_cleanup
 ```

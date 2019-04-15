@@ -9,7 +9,7 @@ long_description = "%s\n\n## Changelog\n%s" % (
 
 setup(
     name='django-joblog',
-    version='0.2.0',
+    version='0.2.1',
     description='A generic django-utility that helps to log stuff to the database.',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -20,6 +20,10 @@ setup(
     packages=[
         'django_joblog',
         'django_joblog.migrations',
+        'django_joblog.management',
+        'django_joblog.management.commands',
+        'django_joblog.tests',
+        'django_joblog.impl',
     ],
     zip_safe=False,
     install_requires=['django>=1.10.0'],
