@@ -9,6 +9,8 @@ from django.utils import timezone
 from django.conf import settings
 from django.db import DEFAULT_DB_ALIAS
 
+from . import Config
+
 
 JOB_LOG_STATE_RUNNING = "running"
 JOB_LOG_STATE_FINISHED = "finished"
@@ -29,7 +31,7 @@ def db_alias():
     Return "joblog" if such a database is configured else defaults to django.db.DEFAULT_DB_ALIAS
     :return: str
     """
-    alias = getattr(settings, "JOBLOG_CONFIG", {}).get("db_alias", DEFAULT_DB_ALIAS)
+    alias = Config().db_alias
     if alias not in settings.DATABASES:
         warnings.warn("Configured job-logger db alias '%s' is not in settings.DATABASES" % alias)
         return DEFAULT_DB_ALIAS
@@ -52,24 +54,53 @@ class JobLogModel(models.Model):
     error_text = models.TextField(verbose_name=_("error log"), default=None, null=True, blank=True, editable=False)
 
     @classmethod
-    def is_job_running(cls, name, time_delta=None):
+    def is_job_running(cls, name, time_delta=None, ping=None):
         """
         Return True if a job with the given name is currently running.
         :param name: str
         :param time_delta: datetime.timedelta, optional,
                            if not None, return True only if the running job is started within now - time_delta
+        :param ping: bool, overrides the "ping" setting in django.conf.settings.JOBLOG_CONFIG
+                When true, jobs will be considered "halted" when their "duration" field is significantly
+                smaller than their true duration
         :return: bool
         """
+        if ping is None:
+            ping = Config().ping
+
         if time_delta is None:
-            return cls.objects.using(db_alias()).filter(
+            qset = cls.objects.using(db_alias()).filter(
                 name=name,
                 state=JOB_LOG_STATE_RUNNING,
-            ).exists()
+            )
+        else:
+            date_started = timezone.now() - time_delta
+            qset = cls.objects.using(db_alias()).filter(
+                name=name,
+                state=JOB_LOG_STATE_RUNNING,
+                date_started__gte=date_started,
+            )
 
-        date_started = timezone.now() - time_delta
-        return cls.objects.using(db_alias()).filter(
-            name=name,
-            state=JOB_LOG_STATE_RUNNING,
-            date_started__gte=date_started,
-        ).exists()
+        if not qset.exists():
+            return False
+
+        if not ping:
+            return qset.exists()
+
+        leeway = Config().ping_delay
+        now = timezone.now()
+        for date_started, duration in qset.values_list("date_started", "duration"):
+            true_duration = now - date_started
+
+            if not duration:
+                if true_duration.total_seconds() < leeway:
+                    # a probably still running job which has not updated it's "duration" field yet
+                    return True
+                continue
+
+            if true_duration.total_seconds() <= duration.total_seconds() + leeway:
+                # a running job who's "duration" has been updated recently
+                return True
+
+        return False
 

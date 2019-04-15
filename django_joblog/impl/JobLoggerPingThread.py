@@ -3,20 +3,20 @@ from __future__ import unicode_literals
 
 import time
 import threading
-import traceback
 import datetime
 
-from django.utils.translation import ugettext_lazy as _
-from django.conf import settings
 
+class JobLoggerPingThread(object):
 
-class JobLoggerThread(object):
+    """
+    Not part of public API
+    Helper class to house a thread that regularly calls JobModelAbstraction.update_model()
+    """
 
     def __init__(self, joblog):
         self._p = joblog
-        self._ioloop = None
         self._thread = None
-        self._ping_delay = getattr(settings, "JOBLOG_CONFIG", {}).get("ping_delay", 10)
+        self._ping_delay = self._p.config.ping_delay
         self._next_ping_time = None
         self._stop = False
 

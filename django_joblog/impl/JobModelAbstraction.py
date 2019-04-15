@@ -33,20 +33,8 @@ class JobModelAbstraction(object):
                            if not None, return True only if the running job is started within now - time_delta
         :return: bool
         """
-        from django_joblog.models import JOB_LOG_STATE_ERROR, JOB_LOG_STATE_FINISHED, JOB_LOG_STATE_RUNNING
-
-        if time_delta is None:
-            return self.manager.filter(
-                name=self._p.name,
-                state=JOB_LOG_STATE_RUNNING,
-            ).exists()
-
-        date_started = timezone.now() - time_delta
-        return self.manager.filter(
-            name=self._p.name,
-            state=JOB_LOG_STATE_RUNNING,
-            date_started__gte=date_started,
-        ).exists()
+        from django_joblog.models import JobLogModel, JOB_LOG_STATE_ERROR, JOB_LOG_STATE_FINISHED, JOB_LOG_STATE_RUNNING
+        return JobLogModel.is_job_running(self._p.name, time_delta=time_delta)
 
     def create_model(self):
         if not self._p.allow_parallel and self.is_job_running():
