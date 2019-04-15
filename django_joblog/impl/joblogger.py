@@ -76,16 +76,24 @@ class JobLogger(JobLoggerBase):
         super(JobLogger, self).__init__(name, parallel=parallel, print_to_console=print_to_console)
         self._model = None
         self._live_updates = getattr(settings, "JOBLOG_CONFIG", {}).get("live_updates", False)
+        self._thread = None
 
     def __enter__(self):
         if self._model is None:
             self._model = JobModelAbstraction(self)
             self._model.create_model()
+            if getattr(settings, "JOBLOG_CONFIG", {}).get("ping", False):
+                from .jobthread import JobLoggerThread
+                self._thread = JobLoggerThread(self)
+                self._thread.start()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._model is None:
             return True
+        if self._thread is not None:
+            self._thread.stop()
+
         try:
             self._model.update_model()
             if exc_tb:

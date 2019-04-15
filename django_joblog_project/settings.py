@@ -35,6 +35,7 @@ JOBLOG_CONFIG = {
     "live_updates": True,
     # enable a constant update of job state - to check for jobs which went away without notice
     "ping": True,
+    "ping_delay": 1,
     # always print to console during jobs
     # "print_to_console": True
 }

@@ -1,7 +1,7 @@
 # encoding=utf-8
 from __future__ import unicode_literals
 
-import traceback
+import threading
 
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
@@ -17,7 +17,9 @@ class JobModelAbstraction(object):
     def __init__(self, joblog):
         self._p = joblog
         self._job_model = None
+        self._model_pk = None
         self._thread = None
+        self._update_lock = threading.Lock()
 
     @property
     def manager(self):
@@ -56,26 +58,28 @@ class JobModelAbstraction(object):
 
     def update_model(self):
         from django_joblog.models import db_alias
+        with self._update_lock:
+            model = self._get_model()
 
-        if not self._job_model:
-            self.create_model()
+            now = timezone.now()
+            duration = now - model.date_started
 
-        log_text = None
-        error_text = None
+            log_text = None
+            error_text = None
 
-        if self._p._log_lines:
-            log_text = "\n".join(self._p._log_lines)
+            if self._p._log_lines:
+                log_text = "\n".join(self._p._log_lines)
 
-        if self._p._error_lines:
-            error_text = "\n".join(self._p._error_lines)
+            if self._p._error_lines:
+                error_text = "\n".join(self._p._error_lines)
 
-        if log_text != self._job_model.log_text or error_text != self._job_model.error_text:
-            self._job_model.log_text = log_text
-            self._job_model.error_text = error_text
-            self._job_model.save(using=db_alias())
+            model.log_text = log_text
+            model.error_text = error_text
+            model.duration = duration
+            model.save(using=db_alias())
 
     def finish(self, error_text=None):
-        if self._job_model:
+        if self._model_pk is not None:
             self._finish(error_text)
 
     def _create_model(self):
@@ -83,12 +87,20 @@ class JobModelAbstraction(object):
         count = self.manager.filter(name=self._p.name).count() + 1
         if self._p.print_to_console:
             print("\n%s.%s started @ %s" % (self._p.name, count, now))
-        return self.manager.create(name=self._p.name, count=count, date_started=now)
+        model = self.manager.create(name=self._p.name, count=count, date_started=now)
+        self._model_pk = model.pk
+        return model
+
+    def _get_model(self):
+        if self._model_pk is None:
+            return self._create_model()
+        else:
+            return self.manager.get(pk=self._model_pk)
 
     def _finish(self, exception_or_error=None):
         from django_joblog.models import db_alias, JOB_LOG_STATE_FINISHED, JOB_LOG_STATE_ERROR
         
-        model = self._job_model
+        model = self._get_model()
         
         model.date_ended = timezone.now()
         model.duration = model.date_ended - model.date_started
