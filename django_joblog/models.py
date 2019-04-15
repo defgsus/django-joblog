@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import warnings
 import enum
 
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
 from django.conf import settings
@@ -101,4 +101,43 @@ class JobLogModel(models.Model):
                 return True
 
         return False
+
+    @classmethod
+    def cleanup(cls, joblog=None):
+        """
+        Set all jobs that are running but who's update is older than JOBLOG_CONFIG["ping_delay"] to 'halted'.
+        Careful! JOBLOG_CONFIG["ping"] must be enabled for this to work reliably.
+        :param joblog: optional JobLogger instance to log the result
+        """
+        from django_joblog import DummyJobLogger
+        now = timezone.now()
+        leeway = Config().ping_delay
+        joblog = joblog or DummyJobLogger()
+
+        with transaction.atomic():
+            qset = cls.objects.using(db_alias()).filter(state=JobLogStates.running.name)
+            num_running = qset.count()
+            to_delete = []
+
+            for pk, date_started, duration in qset.values_list("pk", "date_started", "duration"):
+                true_duration = now - date_started
+
+                if not duration:
+                    if true_duration.total_seconds() < leeway:
+                        # a probably still running job which has not updated it's "duration" field yet
+                        continue
+                else:
+                    if true_duration.total_seconds() <= duration.total_seconds() + leeway:
+                        # a running job who's "duration" has been updated recently
+                        continue
+
+                to_delete.append(pk)
+                print("deleting pk=%s, date_started=%s, duration=%s" % (pk, date_started, duration))
+
+            if not to_delete:
+                joblog.log("%s job(s) running, all valid" % num_running)
+            else:
+                joblog.log("%s job(s) running, %s halted" % (num_running, len(to_delete)))
+                for pk in to_delete:
+                    cls.objects.using(db_alias()).filter(pk=pk).update(state=JobLogStates.halted.name)
 
