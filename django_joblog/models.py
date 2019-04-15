@@ -85,7 +85,7 @@ class JobLogModel(models.Model):
         if not ping:
             return qset.exists()
 
-        leeway = Config().ping_delay
+        leeway = Config().ping_interval
         now = timezone.now()
         for date_started, duration in qset.values_list("date_started", "duration"):
             true_duration = now - date_started
@@ -105,13 +105,13 @@ class JobLogModel(models.Model):
     @classmethod
     def cleanup(cls, joblog=None):
         """
-        Set all jobs that are running but who's update is older than JOBLOG_CONFIG["ping_delay"] to 'halted'.
+        Set all jobs that are running but who's update is older than JOBLOG_CONFIG["ping_interval"] to 'halted'.
         Careful! JOBLOG_CONFIG["ping"] must be enabled for this to work reliably.
         :param joblog: optional JobLogger instance to log the result
         """
         from django_joblog import DummyJobLogger
         now = timezone.now()
-        leeway = Config().ping_delay
+        leeway = Config().ping_interval
         joblog = joblog or DummyJobLogger()
 
         with transaction.atomic():

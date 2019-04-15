@@ -16,13 +16,13 @@ class JobLoggerPingThread(object):
     def __init__(self, joblog):
         self._p = joblog
         self._thread = None
-        self._ping_delay = self._p.config.ping_delay
+        self._ping_interval = self._p.config.ping_interval
         self._next_ping_time = None
         self._stop = False
 
     def start(self):
         if not self._thread:
-            self._next_ping_time = datetime.datetime.now() + datetime.timedelta(seconds=self._ping_delay)
+            self._next_ping_time = datetime.datetime.now() + datetime.timedelta(seconds=self._ping_interval)
             self._thread = threading.Thread(target=self._mainloop)
             self._thread.start()
 
@@ -36,7 +36,7 @@ class JobLoggerPingThread(object):
         while not self._stop:
             time.sleep(.5)
             if datetime.datetime.now() >= self._next_ping_time:
-                self._next_ping_time = datetime.datetime.now() + datetime.timedelta(seconds=self._ping_delay)
+                self._next_ping_time = datetime.datetime.now() + datetime.timedelta(seconds=self._ping_interval)
                 # print("PING")
                 if not self._stop:
                     self._p._model.update_model(allow_fail=True)

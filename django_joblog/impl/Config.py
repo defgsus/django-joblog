@@ -24,6 +24,6 @@ class Config:
         return self._config.get("ping", False)
 
     @property
-    def ping_delay(self):
-        return self._config.get("ping_delay", 10)
+    def ping_interval(self):
+        return self._config.get("ping_interval", 10)
 
