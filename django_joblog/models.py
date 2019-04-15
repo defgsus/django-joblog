@@ -20,7 +20,7 @@ class JobLogStates(enum.Enum):
     running = _("▶ running")
     finished = _("✔ finished")
     error = _("❌ error")
-    halted = _("❎ halted")
+    halted = _("⊙ halted")
 
 
 def db_alias():
@@ -132,12 +132,20 @@ class JobLogModel(models.Model):
                         continue
 
                 to_delete.append(pk)
-                print("deleting pk=%s, date_started=%s, duration=%s" % (pk, date_started, duration))
 
             if not to_delete:
                 joblog.log("%s job(s) running, all valid" % num_running)
             else:
                 joblog.log("%s job(s) running, %s halted" % (num_running, len(to_delete)))
                 for pk in to_delete:
-                    cls.objects.using(db_alias()).filter(pk=pk).update(state=JobLogStates.halted.name)
-
+                    try:
+                        job = cls.objects.using(db_alias()).get(pk=pk)
+                        job.state = JobLogStates.halted.name
+                        if not job.date_ended:
+                            if job.duration:
+                                job.date_ended = job.date_started + job.duration
+                            else:
+                                job.date_ended = now
+                        job.save(using=db_alias())
+                    except cls.DoesNotExist:
+                        pass

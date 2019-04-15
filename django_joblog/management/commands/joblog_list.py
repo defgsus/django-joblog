@@ -28,7 +28,7 @@ class Command(BaseCommand):
                 else:
                     qset |= state_qset
 
-        qset = qset.order_by("date_started")
+        qset = qset.order_by("-date_started")
         qset = qset[:20]
 
         format_str = "%4s | %34s | %34s | %30s | %20s"

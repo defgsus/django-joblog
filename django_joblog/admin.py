@@ -33,7 +33,11 @@ class JobLogModelAdmin(admin.ModelAdmin):
     date_ended_decorator.short_description = _("ended")
 
     def state_decorator(self, model):
-        state = getattr(JobLogStates, model.state, model.state)
+        state = getattr(JobLogStates, model.state, None)
+        if state:
+            state = state.value
+        else:
+            state = model.state
         return mark_safe('<span style="white-space: nowrap">%s</span>' % state)
     state_decorator.short_description = _("state")
 
