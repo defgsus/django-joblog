@@ -1,4 +1,4 @@
-# django-joblog v0.2.1
+# django-joblog v0.2.2
 
 A generic django-utility that helps to log stuff to the database.
 

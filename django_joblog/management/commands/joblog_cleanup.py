@@ -26,5 +26,5 @@ class Command(BaseCommand):
                       "Use -f/--force to override this warning")
                 exit(-1)
 
-        with JobLogger("joblog_cleanup", print_to_console=True):
-            JobLogModel.cleanup()
+        with JobLogger("joblog_cleanup", print_to_console=True) as job:
+            JobLogModel.cleanup(joblog=job)
