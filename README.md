@@ -191,8 +191,8 @@ The whole object and all of it's fields are optional.
 This name must be present in the `DATABASE` setting. 
 
 One does not normally need to define this setting unless you want to make sure that 
-[Live updates](#live-updates) or using the [Ping mode](#ping) always work event when transactions
-are used inside the job. Consider this example:
+[Live updates](#live-updates) or using the [Ping mode](#ping) always work even when transactions
+are used inside the job body. Consider this example:
 
 ```python
 from django.db import transaction
@@ -205,9 +205,9 @@ with JobLogger("my-job") as job:
         # ...other stuff...
 ```   
 
-If you are using [Live updates](#live-updates) and need to make sure that the second log (Inside transaction)
-is immediately stored to the database you need to define a second database connection. 
-It can just be a copy of the `'default'` database setting.    
+If you are using [Live updates](#live-updates) and need to make sure that the second log 
+("Inside transaction") is immediately stored to the database you need to define a second 
+database connection. It can just be a copy of the `'default'` database setting.    
 
 ### live updates
 
@@ -220,18 +220,35 @@ Setting `ping` to `True` will spawn a separate thread when calling `with JobLogg
 constantly update the joblog database with the current log text, error text and duration. 
 The update-interval is configured with `ping_interval` in seconds. 
 
+Normally, if a job exits unexpectedly (segfault, power-off, restart of vm, etc..) it's state in 
+the database will stay `running` forever. 
+New jobs with the same name will be blocked from execution.
+
+However, enabling `ping` mode will make sure, that if a job (in database) who's `duration` is 
+yet undefined or larger than the `ping_interval` can be considered stopped.  
+
+To set those dangling job's database state to `halted` use: 
+```bash
+./manage.py joblog_cleanup
+```
+or 
+```python
+from django_joblog.models import JobLogModel
+JobLogModel.cleanup()
+```
+
 
 # Testing
 
 Unit-tests are [Django-style](https://docs.djangoproject.com/en/2.0/topics/testing/overview/#running-tests) 
-and are placed in [django_joblog/tests.py](https://github.com/defgsus/django-joblog/blob/master/django_joblog/tests.py).
+and are placed in [django_joblog/tests/](https://github.com/defgsus/django-joblog/blob/master/django_joblog/tests/).
 
 Note that the *parallel* tests will fail with the **Sqlite** backend, because of database-locking.
 
 ## The repository
 
-[The repo](https://github.com/defgsus/django-joblog) contains a whole django project (`django_joblog_project`) for ease of development. 
-`setup.py` only exports the `django_joblog` app. 
+[The repo](https://github.com/defgsus/django-joblog) contains a whole django project (`django_joblog_project`) 
+for ease of development. `setup.py` only exports the `django_joblog` app. 
 
 The default database backend is configured to **MySQL**.
 
