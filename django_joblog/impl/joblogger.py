@@ -5,15 +5,10 @@ import traceback
 
 from django.utils.translation import ugettext_lazy as _
 
+from .JobModelAbstraction import JobModelAbstraction
 
-__all__ = ("JobIsAlreadyRunningError", "JobLogger", "JobLoggerContext", "DummyJobLogger")
 
-
-class JobIsAlreadyRunningError(BaseException):
-    """
-    Error thrown, if a job with the same name is already running
-    """
-    pass
+__all__ = ("JobLogger", "JobLoggerContext", "DummyJobLogger")
 
 
 class JobLoggerBase(object):
@@ -36,6 +31,10 @@ class JobLoggerBase(object):
     @property
     def allow_parallel(self):
         return self._allow_parallel
+
+    @property
+    def print_to_console(self):
+        return self._print_to_console
 
     @property
     def context(self):
@@ -74,27 +73,19 @@ class JobLogger(JobLoggerBase):
         :param print_to_console: bool, if True, all log, error and exception texts are also printed to the console
         """
         super(JobLogger, self).__init__(name, parallel=parallel, print_to_console=print_to_console)
-        self.job_model = None
+        self._model = None
 
     def __enter__(self):
-        from .models import JobLogModel
-
-        if not self.allow_parallel and JobLogModel.is_job_running(self._name):
-            raise JobIsAlreadyRunningError(
-                _("The job '%s' is already running and 'parallel' was set to False") % self._name
-            )
-
-        self.job_model = JobLogModel.start_job(self._name, print_to_console=self._print_to_console)
+        if self._model is None:
+            self._model = JobModelAbstraction(self)
+            self._model.create_model()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._model is None:
+            return True
         try:
-            if self.job_model is None:
-                return True
-            if self._log_lines:
-                self.job_model.log_text = "\n".join(self._log_lines)
-            if self._error_lines:
-                self.job_model.error_text = "\n".join(self._error_lines)
+            self._model.update_model()
             if exc_tb:
                 try:
                     type_name = exc_type.__name__
@@ -107,10 +98,10 @@ class JobLogger(JobLoggerBase):
                     type_name,
                     "".join(reversed(traceback.format_tb(exc_tb)))
                 )
-            self.job_model.finish(exc_val, print_to_console=self._print_to_console)
+            self._model.finish(exc_val)
             return True
         except BaseException as e:
-            self.job_model.finish("%s" % e, print_to_console=self._print_to_console)
+            self._model.finish("%s: %s" % (e.__class__.__name__, e))
             raise e
 
     def log(self, line):
@@ -121,6 +112,10 @@ class JobLogger(JobLoggerBase):
         """
         line = self.context + ("%s" % line).strip()
         self._log_lines.append(line)
+
+        if self._model:
+            self._model.update_model()
+
         if self._print_to_console:
             try:
                 print("LOG: %s" % line)
@@ -135,6 +130,10 @@ class JobLogger(JobLoggerBase):
         """
         line = self.context + ("%s" % line).strip()
         self._error_lines.append(line)
+
+        if self._model:
+            self._model.update_model()
+
         if self._print_to_console:
             try:
                 print("ERR: %s" % line)
@@ -217,3 +216,4 @@ class JobLoggerContext(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         if not exc_tb:
             self._log.pop_context()
+

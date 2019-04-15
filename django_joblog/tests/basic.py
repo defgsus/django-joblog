@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from django_joblog.models import JobLogModel
-from django_joblog.joblogger import *
+from django_joblog import *
 
 
 class JobLogBasicTestCase(TestCase):
