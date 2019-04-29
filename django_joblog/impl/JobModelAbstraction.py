@@ -1,10 +1,9 @@
 # encoding=utf-8
 from __future__ import unicode_literals
 
-import threading
-
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
+from django.db import transaction
 
 from .exceptions import JobIsAlreadyRunningError
 
@@ -19,7 +18,6 @@ class JobModelAbstraction(object):
         self._job_model = None
         self._model_pk = None
         self._thread = None
-        self._update_lock = threading.Lock()
 
     @property
     def manager(self):
@@ -46,7 +44,7 @@ class JobModelAbstraction(object):
 
     def update_model(self, allow_fail=False):
         from django_joblog.models import db_alias
-        with self._update_lock:
+        with transaction.atomic(using=db_alias()):
             model = self._get_model(allow_fail=allow_fail)
             if not model and allow_fail:
                 return
