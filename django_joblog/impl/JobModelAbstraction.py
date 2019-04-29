@@ -49,17 +49,8 @@ class JobModelAbstraction(object):
             now = timezone.now()
             duration = now - model.date_started
 
-            log_text = None
-            error_text = None
-
-            if self._p._log_lines:
-                log_text = "\n".join(self._p._log_lines)
-
-            if self._p._error_lines:
-                error_text = "\n".join(self._p._error_lines)
-
-            model.log_text = log_text
-            model.error_text = error_text
+            model.log_text = self._p.get_log_text()
+            model.error_text = self._p.get_error_text()
             model.duration = duration
             model.save(using=db_alias())
 

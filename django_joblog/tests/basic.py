@@ -61,6 +61,15 @@ class JobLogBasicTestCase(TestCase):
         self.assertEqual("Hello!\nWorld!", model.log_text)
         self.assertEqual("Hey!\nJude!", model.error_text)
 
+    def test_no_log(self):
+        with JobLogger("test-no-log") as log:
+            pass
+
+        model = manager().get(name="test-no-log")
+
+        self.assertEqual(None, model.log_text)
+        self.assertEqual(None, model.error_text)
+
     def test_context(self):
         with JobLogger("test-context") as log:
             log.log("outside")
