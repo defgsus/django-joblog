@@ -12,7 +12,7 @@ from django_joblog import Config, JobLogger
 
 
 class Command(BaseCommand):
-    help = "Set running jobs that seem to be killed to 'vanished' state - for 'ping' mode"
+    help = "Set running jobs that seem to be killed to 'vanished' state - for 'ping' mode only"
 
     def add_arguments(self, parser):
         parser.add_argument("-f", "--force", nargs="?", type=bool, const=True, default=False,
@@ -26,5 +26,5 @@ class Command(BaseCommand):
                       "Use -f/--force to override this warning")
                 exit(-1)
 
-        with JobLogger("joblog_cleanup", print_to_console=True) as job:
+        with JobLogger("joblog_cleanup", parallel=True, print_to_console=True) as job:
             JobLogModel.cleanup(joblog=job)
