@@ -20,6 +20,7 @@ class JobLogStates(enum.Enum):
     running = _("▶ running")
     finished = _("✔ finished")
     error = _("❌ error")
+    blocked = _("🖐 blocked")
     vanished = _("⊙ vanished")
 
 

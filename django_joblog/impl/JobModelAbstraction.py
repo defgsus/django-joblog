@@ -34,6 +34,7 @@ class JobModelAbstraction(object):
 
     def create_model(self):
         if not self._p.allow_parallel and self.is_job_running():
+            self._create_blocked_model()
             raise JobIsAlreadyRunningError(
                 _("The job '%s' is already running and 'parallel' was set to False") % self._p.name
             )
@@ -67,6 +68,16 @@ class JobModelAbstraction(object):
         self._model_pk = model.pk
         if self._p.print_to_console:
             print("\n%s.%s started @ %s" % (self._p.name, count, now))
+        return model
+
+    def _create_blocked_model(self):
+        from django_joblog.models import JobLogStates
+        now = timezone.now()
+        count = self.manager.filter(name=self._p.name).count() + 1
+        model = self.manager.create(
+            name=self._p.name, count=count, date_started=now,
+            state=JobLogStates.blocked.name,
+        )
         return model
 
     def _get_model(self, allow_fail=False):
