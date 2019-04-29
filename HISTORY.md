@@ -1,8 +1,12 @@
-## v0.2.3 - Apr/2019
+## v0.2.4 - Apr/2019
+
+- add 'blocked' state entry on failed parallel job runs 
+
+## v0.2.3 
 
 - fix joblog model access
 
-## v0.2.2 - Apr/2019
+## v0.2.2 
 
 - add `JOBLOG_CONFIG` setting
 - add `live_updates` and `ping` mode
@@ -16,6 +20,6 @@
 - make printing to console optional
 - add django unit-tests
 
-## v0.0.1 - Jul/2018
+## v0.0.1 
 
 - Copy-pasted together from various private projects, 'sanitized' and repackaged for PyPi

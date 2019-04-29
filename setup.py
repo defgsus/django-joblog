@@ -9,7 +9,7 @@ long_description = "%s\n\n## Changelog\n%s" % (
 
 setup(
     name='django-joblog',
-    version='0.2.3',
+    version='0.2.4',
     description='A generic django-utility that helps to log stuff to the database.',
     long_description=long_description,
     long_description_content_type="text/markdown",

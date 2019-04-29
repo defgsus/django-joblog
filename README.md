@@ -60,8 +60,11 @@ Then add `django_joblog` to `INSTALLED_APPS` in your django `settings.py` and ca
 ### Parallelism
 
 By default, jobs are not allowed to run in parallel. This can be changed with `parallel=True` in 
-the `JobLogger` constructor. If you start a JobLogger while a job with the same name is already
-running, a `django_joblog.JobIsAlreadyRunningError` is raised.
+the `JobLogger` constructor. 
+
+**If you start a JobLogger while a job with the same name is already
+running, a `django_joblog.JobIsAlreadyRunningError` is raised.** Additionally, a job log entry
+in the database will be created with `blocked` state.
 
 For example, you might have a cronjob that runs every minute and looks for open tasks in the 
 database. If you wrap the task in a `JobLogger` you can be sure, that the tasks are not 
@@ -129,6 +132,12 @@ api:submit: IOError - Status code 404 returned for url https://my.api.com/submit
    api.submit(data) 
 ```
 
+As can be seen, a `JobLoggerContext` does not pop it's name from the context stack 
+in case of an exception! Which means, catching exceptions within higher context levels 
+than where those exceptions where raised does not leave a valid context stack if 
+you resume work after the caught exception.    
+
+
 ### DummyJobLogger
 
 You can use the `DummyJobLogger` class to provide logging without storing stuff to the database. 
@@ -140,6 +149,12 @@ In general, functions can be designed to work with a `JobLogger` but do not *req
 ```python
 from django_joblog import JobLogger, DummyJobLogger
 
+def buy_eggs(log=None):
+    log = log or DummyJobLogger()
+    
+    log.log("Gonna buy some eggs!")
+    ...
+
 def cronjob_invokation():
     with JobLogger("buy-eggs") as log:
         buy_eggs(log)
@@ -147,11 +162,6 @@ def cronjob_invokation():
 def debug_invokation():
     buy_eggs()
 
-def buy_eggs(log=None):
-    log = log or DummyJobLogger()
-    
-    log.log("Gonna buy some eggs!")
-    ...
 ```
 
 ### Using the model
@@ -212,7 +222,7 @@ database connection. It can just be a copy of the `'default'` database setting.
 ### live updates
 
 Setting `live_updates` to `True` will store the current log and error texts as long with the current
-job duration to database whenever `JobLogger.log()` or `JobLogger.error()` is called.
+job duration to database whenever `JobLogger.log()` or `JobLogger.error()` are called.
 
 ### ping
 
