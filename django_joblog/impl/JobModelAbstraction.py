@@ -15,9 +15,7 @@ class JobModelAbstraction(object):
     """
     def __init__(self, joblog):
         self._p = joblog
-        self._job_model = None
         self._model_pk = None
-        self._thread = None
 
     @property
     def manager(self):
@@ -39,8 +37,7 @@ class JobModelAbstraction(object):
             raise JobIsAlreadyRunningError(
                 _("The job '%s' is already running and 'parallel' was set to False") % self._p.name
             )
-
-        self._job_model = self._create_model()
+        self._create_model()
 
     def update_model(self, allow_fail=False):
         from django_joblog.models import db_alias
@@ -67,16 +64,18 @@ class JobModelAbstraction(object):
             model.save(using=db_alias())
 
     def finish(self, error_text=None):
+        from django_joblog.models import db_alias
         if self._model_pk is not None:
-            self._finish(error_text)
+            with transaction.atomic(using=db_alias()):
+                self._finish(error_text)
 
     def _create_model(self):
         now = timezone.now()
         count = self.manager.filter(name=self._p.name).count() + 1
-        if self._p.print_to_console:
-            print("\n%s.%s started @ %s" % (self._p.name, count, now))
         model = self.manager.create(name=self._p.name, count=count, date_started=now)
         self._model_pk = model.pk
+        if self._p.print_to_console:
+            print("\n%s.%s started @ %s" % (self._p.name, count, now))
         return model
 
     def _get_model(self, allow_fail=False):
