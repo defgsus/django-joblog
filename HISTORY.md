@@ -1,3 +1,7 @@
+## v0.2.3 - Apr/2019
+
+- fix joblog model access
+
 ## v0.2.2 - Apr/2019
 
 - add `JOBLOG_CONFIG` setting
