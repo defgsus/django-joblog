@@ -3,7 +3,7 @@ from threading import Thread
 from functools import partial
 
 from django.test import TestCase
-from django.db import transaction
+from django.db import transaction, connections
 
 from django_joblog.models import JobLogModel
 from django_joblog import *
@@ -22,7 +22,7 @@ class JobLogRegressionTests(TestCase):
         """
         JOB_NAME = "test-hanging"
         NUM_THREADS = 10
-        NUM_JOBS = 10
+        NUM_JOBS = 5
 
         def _task(job_name):
             for i in range(NUM_JOBS):
@@ -34,6 +34,7 @@ class JobLogRegressionTests(TestCase):
                         log.log("finished")
                     log.log("ended transaction")
                 time.sleep(.5)
+            connections.close_all()
 
         threads = [
             Thread(target=partial(_task, "%s-%s" % (JOB_NAME, i)))
@@ -55,4 +56,3 @@ class JobLogRegressionTests(TestCase):
                 NUM_JOBS,
                 JobLogModel.objects.filter(name=job_name).exclude(date_ended=None).count()
             )
-

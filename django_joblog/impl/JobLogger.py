@@ -41,6 +41,9 @@ class JobLogger(JobLoggerBase):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.exception = exc_val
+        self.traceback = exc_tb
+
         if self._model is None:
             return True
 

@@ -16,6 +16,8 @@ class JobLoggerBase(object):
         self._context = []
         self._allow_parallel = parallel
         self._print_to_console = print_to_console or self.config.print_to_console
+        self.exception = None
+        self.traceback = None
 
     @property
     def name(self):

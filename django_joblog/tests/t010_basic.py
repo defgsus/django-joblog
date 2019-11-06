@@ -3,6 +3,7 @@ from threading import Thread
 
 from django.test import TestCase
 from django.utils import timezone
+from django.db import connections
 
 from django_joblog.models import JobLogModel, db_alias
 from django_joblog import *
@@ -69,6 +70,7 @@ class JobLogBasicTestCase(TestCase):
 
         self.assertEqual(None, model.log_text)
         self.assertEqual(None, model.error_text)
+        self.assertIsNone(log.exception)
 
     def test_context(self):
         with JobLogger("test-context") as log:
@@ -96,6 +98,17 @@ class JobLogBasicTestCase(TestCase):
 
         self.assertEqual("ValueError - This was bad", model.error_text.split("\n")[0])
 
+    def test_exception_value(self):
+        with JobLogger("test-exception") as job:
+            raise ValueError("This was bad")
+
+        self.assertIsInstance(job.exception, ValueError)
+        self.assertEqual("This was bad", str(job.exception))
+
+        model = manager().get(name="test-exception")
+
+        self.assertEqual("ValueError - This was bad", model.error_text.split("\n")[0])
+
     def test_context_exception(self):
         with JobLogger("test-context-exception") as log:
             with JobLoggerContext(log, "context1"):
@@ -110,6 +123,7 @@ class JobLogBasicTestCase(TestCase):
         def _task():
             with JobLogger("test-is-running"):
                 time.sleep(5)
+            connections.close_all()
 
         thread = Thread(target=_task)
         thread.start()
