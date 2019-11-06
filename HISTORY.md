@@ -1,3 +1,7 @@
+## v0.2.5 - Nov/2019
+
+- add `JobLogger.exception` property for inspection after the run 
+
 ## v0.2.4 - Apr/2019
 
 - add 'blocked' state entry on failed parallel job runs 
