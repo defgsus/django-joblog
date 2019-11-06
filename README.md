@@ -34,11 +34,11 @@ The following information is stored to the database for further inspection:
 - end-time
 - duration 
 - any log or error output 
-- the exception trace, for exception occuring inside the `with`-block
+- the exception trace, for exception occurring inside the `with`-block
 
 This can be useful in conjuction with cronjobs and asynchronous tasks with, e.g., these libraries:
 [django-kronos](https://github.com/jgorset/django-kronos), 
-[django-rq](https://github.com/rq/django-rq), ...
+[django-rq](https://github.com/rq/django-rq), [rabbitmq](https://www.rabbitmq.com/)...
 
 
 # Installation
@@ -137,6 +137,18 @@ in case of an exception! Which means, catching exceptions within higher context 
 than where those exceptions where raised does not leave a valid context stack if 
 you resume work after the caught exception.    
 
+#### inspecting exceptions
+
+An exception is kept in the `exception` property of the `JobLogger` instance:
+
+```python
+with JobLogger("test-exception") as job:
+    raise ValueError("This was bad")
+
+assert isinstance(job.exception, ValueError)
+assert "This was bad" == str(job.exception)
+assert job.traceback
+```
 
 ### DummyJobLogger
 
