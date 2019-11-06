@@ -170,3 +170,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.0/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
+# overload current namespace with settings from "settings_local.py"
+try:
+    from . import settings_local
+    for setting_name in dir(settings_local):
+        if setting_name.isupper():
+            globals()[setting_name] = getattr(settings_local, setting_name)
+            # print("using settings_local.%s" % setting_name)
+
+except ImportError:
+    pass
